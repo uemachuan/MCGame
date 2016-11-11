@@ -5,38 +5,68 @@
 
 #include "Json.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogJsonConfig, Warning, All);
+
 // Sets default values
 UJsonConfig::UJsonConfig()
 {
 }
 
-//¶ÁÈ¡JSONÎÄ¼ş
+// è¯»å–JSONæ–‡ä»¶
 TSharedPtr<class FJsonObject> UJsonConfig::ReadJSONFile(const FString& Filename)
 {
-	//·µ»ØÓÎÏ·µÄ»ù±¾/»ù´¡Ä¿Â¼
-	FString GameDir = FPaths::GameDir();
+	// è¿”å›æ¸¸æˆçš„åŸºæœ¬/åŸºç¡€ç›®å½•
+	//FString GameDir = FPaths::GameDir();
+	// è·å–èµ„æºè·¯å¾„ï¼ˆE:/Unreal Projects/Demo/Filenameï¼‰
+	FString SourceFullPath = FString::Printf(TEXT("%s%s"), *(FPaths::GameDir()), *Filename);
+	
+	UE_LOG(LogJsonConfig, Warning, TEXT("SourceFullPath = %s"), *SourceFullPath);
 
 	//read in file as string
 	FString FileContents;
-	if (!FFileHelper::LoadFileToString(FileContents, *Filename))
+	if (!FFileHelper::LoadFileToString(FileContents, *SourceFullPath))
 	{
-		//UE_LOG(LogObj, Error, TEXT("Failed to load file %s."), *Filename);
+		UE_LOG(LogJsonConfig, Warning, TEXT("Failed to load file %s."), *Filename);
 		return nullptr;
 	}
 	if (FileContents.IsEmpty())
 	{
 		return nullptr;
 	}
+	
 	//parse as JSON
-	TSharedPtr<FJsonObject> JSONObject;
+	TSharedPtr<FJsonObject> JsonObj;
 	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(FileContents);
-	if (!FJsonSerializer::Deserialize(Reader, JSONObject) || !JSONObject.IsValid())
+	if (!FJsonSerializer::Deserialize(Reader, JsonObj) || !JsonObj.IsValid())
 	{
-		//UE_LOG(LogObj, Warning, TEXT("Invalid JSON in file %s."), *Filename);
+		UE_LOG(LogJsonConfig, Warning, TEXT("Invalid JSON in file %s."), *Filename);
 		return nullptr;
 	}
 
-	return JSONObject;
+	return JsonObj;
 }
 
-
+bool UJsonConfig::GetTestConfig(TArray<FTestConfig>& TestConfig)
+{
+	TSharedPtr<FJsonObject> Root;
+	Root = ReadJSONFile(TEXT("GameSource/Test.json"));
+	if (!Root.IsValid())
+	{
+		return false;
+	}
+	const TArray<TSharedPtr<FJsonValue> > * JsonItems = nullptr;
+	if (Root->TryGetArrayField(TEXT("Test"), JsonItems))
+	{
+		for (TSharedPtr<FJsonValue> JsonItem : *JsonItems)
+		{
+			const TSharedPtr<FJsonObject> & ItemObject = JsonItem->AsObject();
+			FTestConfig TestConfigTemp;
+			TestConfigTemp.ID		= ItemObject->GetIntegerField("ID");
+			TestConfigTemp.Desc		= ItemObject->GetStringField("Desc");
+			TestConfig.Add(TestConfigTemp);
+			UE_LOG(LogJsonConfig, Warning, TEXT("Desc%i = %s"), TestConfigTemp.ID, *TestConfigTemp.Desc);
+		}
+		return true;
+	}
+	return false;
+}
