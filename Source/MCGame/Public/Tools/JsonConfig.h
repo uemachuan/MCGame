@@ -4,6 +4,16 @@
 #include "Object.h"
 #include "JsonConfig.generated.h"
 
+struct MCGAME_API FTestConfig
+{
+	int ID;
+	FString Desc;
+
+	FTestConfig()
+		: ID(0), Desc(TEXT(""))
+	{}
+};
+
 /**
  * 
  */
@@ -15,7 +25,10 @@ class MCGAME_API UJsonConfig : public UObject
 public:
 	// Sets default values for this object's properties
 	UJsonConfig();
-	//��ȡJSON�ļ�
+	// 读取Json文件
 	static TSharedPtr<class FJsonObject> ReadJSONFile(const FString& FileName);
-	
+
+public:
+	// 获取测试配置
+	static bool GetTestConfig(TArray<FTestConfig>& TestConfig);
 };
